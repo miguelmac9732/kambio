@@ -1623,7 +1623,7 @@ async function shrink(b){try{const url=URL.createObjectURL(b);const img=await ne
 function parseJSON(t){try{return JSON.parse(t)}catch(e){}const m=t.match(/```(?:json)?\s*([\s\S]*?)```/);if(m){try{return JSON.parse(m[1])}catch(e){}}
  const a=t.search(/[\[{]/),z=Math.max(t.lastIndexOf('}'),t.lastIndexOf(']'));if(a>=0&&z>a){try{return JSON.parse(t.slice(a,z+1))}catch(e){}}throw {code:'invalid_json',message:'json'}}
 function makeGemini(ai,name){
- const names=[name||'gemini-2.5-flash','gemini-flash-latest'].filter((v,i,a)=>a.indexOf(v)===i);let idx=0;
+ const names=[name||'gemini-3.5-flash','gemini-3.5-flash','gemini-3.5-flash-lite','gemini-flash-latest','gemini-flash-lite-latest'].filter((v,i,a)=>a.indexOf(v)===i);let idx=0;
  const model=()=>FB.getGenerativeModel(ai,{model:names[idx],generationConfig:{responseMimeType:'application/json',temperature:0.4}});
  const run=async(prompt,opts={})=>{
   if(!navigator.onLine) throw {code:'offline'};
@@ -1641,7 +1641,8 @@ function makeGemini(ai,name){
   try{return await Promise.race([call(),abortP])}
   catch(e){if(e&&e.code==='cancelled')throw e;const msg=String(e&&e.message||e);
    if(/genai config/i.test(msg)) throw {code:'ai_disabled',message:msg};
-   if(/models\/[^ ]* (is )?not found|not supported for generateContent|404/i.test(msg)&&idx<names.length-1){idx++;return await Promise.race([call(),abortP])}
+   // modelo retirado, no disponible o saturado: probar el siguiente de la lista
+   if(/404|not found|no longer available|not supported for generateContent|500|503|high demand|overloaded|unavailable/i.test(msg)&&idx<names.length-1){idx++;return await run(prompt,opts)}
    if(/quota|429|rate limit|resource.?exhausted/i.test(msg)) throw {code:'rate_limited',message:msg};
    if(/api-not-enabled|not been used|disabled|PERMISSION_DENIED|403/i.test(msg)) throw {code:'ai_disabled',message:msg};
    if(!navigator.onLine) throw {code:'offline'};
