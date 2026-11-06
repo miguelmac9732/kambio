@@ -1346,7 +1346,7 @@ function errMsg(e){
  const c=e&&e.code;
  if(c==='not_granted'||c==='sampling_disabled'||c==='not_declared'||c==='capability_disabled'||c==='capability_removed'){S.aiOff=true;return 'El análisis con IA no está disponible. Puedes registrar la comida a mano.'}
  if(c==='offline') return 'Sin conexión a internet. Regístrala a mano o intenta cuando tengas señal.';
- if(c==='ai_disabled') return 'Falta activar Gemini en Firebase (AI Logic). Mientras tanto regístrala a mano.';
+ if(c==='ai_disabled') return 'La IA todavía no está disponible. Intenta en unos minutos o regístrala a mano.';
  if(c==='rate_limited') return 'Llegaste al límite gratuito de análisis por ahora. Intenta en un rato o regístrala a mano.';
  if(c==='image_rejected') return 'No se pudo leer esa foto. Prueba con otra más nítida y con buena luz.';
  if(c==='images_unavailable'){S.imgOK=false;return 'Esta vista no permite enviar fotos. Usa "Describir" para escribir lo que comiste.'}
@@ -1633,7 +1633,8 @@ function makeGemini(ai,name){
   const call=async()=>(await model().generateContent(parts)).response.text();
   try{return await Promise.race([call(),abortP])}
   catch(e){if(e&&e.code==='cancelled')throw e;const msg=String(e&&e.message||e);
-   if(/not found|404|not supported/i.test(msg)&&idx<names.length-1){idx++;return await Promise.race([call(),abortP])}
+   if(/genai config/i.test(msg)) throw {code:'ai_disabled',message:msg};
+   if(/models\/[^ ]* (is )?not found|not supported for generateContent|404/i.test(msg)&&idx<names.length-1){idx++;return await Promise.race([call(),abortP])}
    if(/quota|429|rate limit|resource.?exhausted/i.test(msg)) throw {code:'rate_limited',message:msg};
    if(/api-not-enabled|not been used|disabled|PERMISSION_DENIED|403/i.test(msg)) throw {code:'ai_disabled',message:msg};
    if(!navigator.onLine) throw {code:'offline'};
