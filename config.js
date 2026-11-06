@@ -10,6 +10,6 @@ window.KAMBIO_CONFIG = {
     "appId": "1:1062965652939:web:92834562b74188b5191a4e"
   },
   // Modelo de IA para analizar fotos y sugerir comidas (Gemini, nivel gratuito)
-  model: "gemini-2.5-flash",
+  model: "gemini-3.5-flash",
   geminiKey: ""
 };
