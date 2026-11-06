@@ -1630,7 +1630,14 @@ function makeGemini(ai,name){
   const parts=[{text:prompt+'\nResponde en español.'}];
   if(opts.images){const L=opts.images instanceof Blob?[opts.images]:Array.from(opts.images);for(const bl of L){parts.push({inlineData:{mimeType:'image/jpeg',data:await blobToB64(await shrink(bl))}})}}
   const abortP=new Promise((_,rej)=>{if(opts.signal){if(opts.signal.aborted)rej({code:'cancelled'});opts.signal.addEventListener('abort',()=>rej({code:'cancelled'}))}});
-  const call=async()=>(await model().generateContent(parts)).response.text();
+  const key=((window.KAMBIO_CONFIG||{}).geminiKey||'').trim();
+  // Con clave propia de Gemini (Google AI Studio) se llama directo a la API; si no, por Firebase AI Logic
+  const direct=async()=>{const ctl=new AbortController();if(opts.signal)opts.signal.addEventListener('abort',()=>ctl.abort());
+   const body={contents:[{role:'user',parts:parts.map(p=>p.text?{text:p.text}:{inline_data:{mime_type:p.inlineData.mimeType,data:p.inlineData.data}})}],generationConfig:{responseMimeType:'application/json',temperature:0.4}};
+   const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+names[idx]+':generateContent?key='+encodeURIComponent(key),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctl.signal});
+   const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));
+   return ((j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[]).map(p=>p.text||'').join('')};
+  const call=async()=>key?direct():(await model().generateContent(parts)).response.text();
   try{return await Promise.race([call(),abortP])}
   catch(e){if(e&&e.code==='cancelled')throw e;const msg=String(e&&e.message||e);
    if(/genai config/i.test(msg)) throw {code:'ai_disabled',message:msg};
